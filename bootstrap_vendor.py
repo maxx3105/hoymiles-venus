@@ -55,37 +55,29 @@ def extract_wheel(path: Path) -> None:
 
 
 def extract_crcmod(path: Path) -> None:
-    """Extract the crcmod Python package from the legacy 1.7 source layout."""
+    """Extract the Python 3 crcmod package from the legacy 1.7 source layout."""
     with tempfile.TemporaryDirectory(prefix="crcmod-") as td:
         td_path = Path(td)
         with tarfile.open(path, "r:gz") as tf:
             tf.extractall(td_path, filter="data")
 
-        # crcmod 1.7 is an old source distribution whose package directory is
-        # not guaranteed to sit directly below crcmod-1.7/. Search for the
-        # actual import package instead of assuming a fixed archive layout.
-        candidates = []
-        for init_file in td_path.rglob("__init__.py"):
-            package_dir = init_file.parent
-            if package_dir.name == "crcmod" and (package_dir / "crcmod.py").is_file():
-                candidates.append(package_dir)
+        # crcmod 1.7 ships separate python2/ and python3/ package trees.
+        # Venus OS uses Python 3, so select that tree explicitly.
+        candidates = list(td_path.glob("crcmod-*/python3/crcmod"))
+        candidates = [
+            p for p in candidates
+            if (p / "__init__.py").is_file() and (p / "crcmod.py").is_file()
+        ]
 
-        # De-duplicate resolved paths in case an archive contains aliases.
-        unique = []
-        seen = set()
-        for candidate in candidates:
-            resolved = candidate.resolve()
-            if resolved not in seen:
-                seen.add(resolved)
-                unique.append(candidate)
-
-        if len(unique) != 1:
-            found = ", ".join(str(p.relative_to(td_path)) for p in unique) or "none"
-            raise RuntimeError(f"crcmod package directory not found uniquely in source archive (found: {found})")
+        if len(candidates) != 1:
+            found = ", ".join(str(p.relative_to(td_path)) for p in candidates) or "none"
+            raise RuntimeError(
+                f"crcmod Python 3 package directory not found uniquely in source archive (found: {found})"
+            )
 
         target = VENDOR / "crcmod"
         shutil.rmtree(target, ignore_errors=True)
-        shutil.copytree(unique[0], target)
+        shutil.copytree(candidates[0], target)
 
 
 def main() -> None:
