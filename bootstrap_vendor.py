@@ -20,8 +20,10 @@ PACKAGES = {
         "kind": "wheel",
     },
     "protobuf": {
-        "url": "https://files.pythonhosted.org/packages/5a/cb/e3065b447186cb70aa65acc70c86baf482d82bf75625bf5a2c4f6919c6a3/protobuf-5.29.6-py3-none-any.whl",
-        "sha256": "6b9edb641441b2da9fa8f428760fc136a49cf97a52076010cf22a2ff73438a86",
+        # hoymiles-wifi 0.5.6 ships protobuf gencode generated with 6.31.1.
+        # The protobuf runtime must not be older than the linked gencode.
+        "url": "https://files.pythonhosted.org/packages/f7/af/ab3c51ab7507a7325e98ffe691d9495ee3d3aa5f589afad65ec920d39821/protobuf-6.31.1-py3-none-any.whl",
+        "sha256": "720a6c7e6b77288b85063569baae8536671b39f15cc22037ec7045658d80489e",
         "kind": "wheel",
     },
     "crcmod": {
