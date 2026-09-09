@@ -1,0 +1,6 @@
+#!/bin/sh
+exec 2>&1
+BASE=/data/hoymiles-pvinverter
+cd "$BASE" || exit 1
+export PYTHONPATH="$BASE/vendor${PYTHONPATH:+:$PYTHONPATH}"
+exec /usr/bin/python3 -u "$BASE/hoymiles_pvinverter.py"
