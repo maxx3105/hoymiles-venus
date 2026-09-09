@@ -74,9 +74,12 @@ if line not in text:
 PY
 chmod +x /data/rc.local
 
-sv up "$SERVICE" 2>/dev/null || true
+mkdir -p /var/log/hoymiles-pvinverter
+sv restart "$SERVICE/log" 2>/dev/null || sv up "$SERVICE/log" 2>/dev/null || true
+sv restart "$SERVICE" 2>/dev/null || sv up "$SERVICE" 2>/dev/null || true
 sleep 2
 svstat "$SERVICE" 2>/dev/null || true
+svstat "$SERVICE/log" 2>/dev/null || true
 
 echo
 echo "Installation abgeschlossen."
