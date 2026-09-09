@@ -75,8 +75,19 @@ PY
 chmod +x /data/rc.local
 
 mkdir -p /var/log/hoymiles-pvinverter
-sv restart "$SERVICE/log" 2>/dev/null || sv up "$SERVICE/log" 2>/dev/null || true
-sv restart "$SERVICE" 2>/dev/null || sv up "$SERVICE" 2>/dev/null || true
+
+# Venus OS uses daemontools (svc/svstat), not runit's `sv` command.
+# Restart logger first, then the main service so code/dependency updates are loaded.
+if command -v svc >/dev/null 2>&1; then
+    svc -d "$SERVICE" 2>/dev/null || true
+    svc -d "$SERVICE/log" 2>/dev/null || true
+    sleep 1
+    svc -u "$SERVICE/log" 2>/dev/null || true
+    svc -u "$SERVICE" 2>/dev/null || true
+else
+    echo "WARNUNG: svc nicht gefunden; Dienst konnte nicht automatisch neu gestartet werden."
+fi
+
 sleep 2
 svstat "$SERVICE" 2>/dev/null || true
 svstat "$SERVICE/log" 2>/dev/null || true
@@ -85,5 +96,6 @@ echo
 echo "Installation abgeschlossen."
 echo "Log:      tail -f /var/log/hoymiles-pvinverter/current"
 echo "Status:   svstat $SERVICE"
+echo "Restart:  svc -t $SERVICE"
 echo "D-Bus:    dbus-spy"
 echo "HMS-Test: cd $BASE && PYTHONPATH=$BASE/vendor python3 test_hms.py"
