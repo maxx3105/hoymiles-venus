@@ -1,12 +1,24 @@
 # Hoymiles HMS-800W-2T → Victron Venus OS
 
-Native D-Bus integration for a **Hoymiles HMS-800W-2T** on a Victron GX device (tested target: Cerbo GX / Venus OS with Python 3.12, ARMv7).
+Native D-Bus integration for a **Hoymiles HMS-800W-2T** on a Victron GX device (validated target: Cerbo GX / Venus OS with Python 3.12, ARMv7).
 
 The inverter is polled directly over the integrated Hoymiles WiFi DTU. No NAS and no MQTT bridge are required.
 
-## Current scope
+## Validated telemetry
 
-The first version deliberately mirrors the proven NAS bridge and uses only `RealDataNew.dtu_power` for PV power. On the target HMS-800W-2T this value is divided by 10, matching the existing working bridge. AC voltage is currently a configurable fallback (230 V) and current is calculated from P/V.
+The local HMS response was validated on 2026-09-09. The driver now uses:
+
+- `dtu_power / 10` → AC power in W
+- `sgs_data.voltage / 10` → AC voltage in V
+- `sgs_data.frequency / 100` → Hz
+- `sgs_data.current / 100` → A
+- `sgs_data.power_factor / 1000` → power factor
+- `sgs_data.temperature / 10` → °C
+- energy counters are Wh and are divided by 1000 for kWh
+
+A real sample was internally consistent: 234.0 V, 49.99 Hz, 0.53 A, PF 0.999 and 116.4 W AC. PV daily energy from both inputs summed exactly to the DTU daily energy counter.
+
+Hoymiles `warning_number` is exposed only as a diagnostic value. It is not mapped to Victron `/ErrorCode` until the warning-code semantics are verified.
 
 ## Defaults
 
@@ -48,19 +60,19 @@ chmod +x install.sh
 
 The installation directory is intentionally `/data/hoymiles-pvinverter`, because `/data` survives normal Venus OS firmware updates.
 
-`install.sh` does **not** install pip. It downloads pinned, hash-verified pure-Python packages into `/data/hoymiles-pvinverter/vendor`:
+`install.sh` does **not** install pip. It downloads pinned, hash-verified packages into `/data/hoymiles-pvinverter/vendor`:
 
 - hoymiles-wifi 0.5.6
 - protobuf 6.31.1
-- crcmod 1.7 (Python 3 package tree)
+- crcmod 1.7, Python-3 implementation
 
 The Cerbo's existing `cryptography` package is used.
 
-`hoymiles-wifi 0.5.6` contains protobuf-generated modules built with protobuf 6.31.1, therefore the bundled runtime is pinned to 6.31.1 as well. An older 5.x runtime fails with `Detected incompatible Protobuf Gencode/Runtime versions`.
+`hoymiles-wifi 0.5.6` contains protobuf-generated modules built with protobuf 6.31.1, therefore the bundled runtime is pinned to 6.31.1 as well.
 
-## Test before enabling the old bridge
+## Test
 
-Stop the NAS bridge first to avoid double PV reporting and parallel local polling. Then:
+Stop any old NAS bridge first to avoid double PV reporting and parallel local polling. Then:
 
 ```sh
 cd /data/hoymiles-pvinverter
@@ -91,6 +103,8 @@ Expected service:
 com.victronenergy.pvinverter.hoymiles_hms800w2t
 ```
 
+Published telemetry includes AC power, voltage, current, frequency, power factor, forward energy, daily energy, temperature, warning number and link status.
+
 ## Configuration
 
 Edit `config.ini` before installation if the HMS IP differs.
@@ -102,4 +116,3 @@ Edit `config.ini` before installation if the HMS IP differs.
 - `/data` survives normal Venus OS updates.
 - Polling is intentionally kept at 35 seconds.
 - Power limiting/control is **not** implemented. This driver is telemetry-only.
-- Additional HMS telemetry should only be added after field scaling has been validated against the target firmware.
