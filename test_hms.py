@@ -23,11 +23,28 @@ async def main():
     print(f"Teste HMS unter {ip} ...")
     data = await DTU(ip).async_get_real_data_new()
     print(data)
-    if data:
-        raw = getattr(data, "dtu_power", None)
-        print("dtu_power raw:", raw)
-        if raw is not None:
-            print("power / 10:", float(raw) / 10.0, "W")
+    if not data:
+        return
+
+    power = float(getattr(data, "dtu_power", 0)) / 10.0
+    daily = float(getattr(data, "dtu_daily_energy", 0)) / 1000.0
+    total = sum(float(getattr(pv, "energy_total", 0)) for pv in getattr(data, "pv_data", []) or []) / 1000.0
+
+    print("\nInterpretierte Werte:")
+    print(f"AC power:       {power:.1f} W")
+    print(f"Daily energy:   {daily:.3f} kWh")
+    print(f"Lifetime energy:{total:9.3f} kWh")
+
+    sgs = getattr(data, "sgs_data", None)
+    if sgs:
+        ac = sgs[0]
+        print(f"AC voltage:     {float(ac.voltage) / 10.0:.1f} V")
+        print(f"AC frequency:   {float(ac.frequency) / 100.0:.2f} Hz")
+        print(f"AC current:     {float(ac.current) / 100.0:.2f} A")
+        print(f"Power factor:   {float(ac.power_factor) / 1000.0:.3f}")
+        print(f"Temperature:    {float(ac.temperature) / 10.0:.1f} °C")
+        print(f"Warning number: {int(ac.warning_number)}")
+        print(f"Link status:    {int(ac.link_status)}")
 
 
 asyncio.run(main())
