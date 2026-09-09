@@ -51,10 +51,12 @@ The installation directory is intentionally `/data/hoymiles-pvinverter`, because
 `install.sh` does **not** install pip. It downloads pinned, hash-verified pure-Python packages into `/data/hoymiles-pvinverter/vendor`:
 
 - hoymiles-wifi 0.5.6
-- protobuf 5.29.6
-- crcmod 1.7 (pure Python)
+- protobuf 6.31.1
+- crcmod 1.7 (Python 3 package tree)
 
 The Cerbo's existing `cryptography` package is used.
+
+`hoymiles-wifi 0.5.6` contains protobuf-generated modules built with protobuf 6.31.1, therefore the bundled runtime is pinned to 6.31.1 as well. An older 5.x runtime fails with `Detected incompatible Protobuf Gencode/Runtime versions`.
 
 ## Test before enabling the old bridge
 
