@@ -150,7 +150,7 @@ class PvService:
         self.service = VeDbusService("com.victronenergy.pvinverter.hoymiles_hms800w2t", register=False)
         s = self.service
         s.add_path("/Mgmt/ProcessName", __file__)
-        s.add_path("/Mgmt/ProcessVersion", "1.1.0")
+        s.add_path("/Mgmt/ProcessVersion", "1.1.1")
         s.add_path("/Mgmt/Connection", f"Hoymiles WiFi {cfg['ip']}")
         s.add_path("/DeviceInstance", settings.instance)
         s.add_path("/ProductId", 0xFFFF)
@@ -236,7 +236,17 @@ class PvService:
         except (TypeError, ValueError):
             daily_kwh = 0.0
 
-        serial = str(getattr(response, "device_serial_number", "") or "")
+        serial = ""
+        if sgs is not None:
+            try:
+                serial = str(int(getattr(sgs, "serial_number", 0)))
+                if serial == "0":
+                    serial = ""
+            except (TypeError, ValueError):
+                serial = ""
+        if not serial:
+            serial = str(getattr(response, "device_serial_number", "") or "")
+
         self.service["/Connected"] = 1
         self.service["/StatusCode"] = 7 if power > 0 else 8
         # Hoymiles warning_number is kept diagnostic-only until its code mapping
