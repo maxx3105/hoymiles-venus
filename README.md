@@ -1,12 +1,22 @@
 # Hoymiles HMS-800W-2T → Victron Venus OS
 
-Native D-Bus integration for a **Hoymiles HMS-800W-2T** on a Victron GX device (validated target: Cerbo GX / Venus OS with Python 3.12, ARMv7).
+Native D-Bus integration for a **Hoymiles HMS-800W-2T** on a Victron GX device.
+
+Validated on 2026-09-09 with:
+
+- Cerbo GX / Venus OS
+- Python 3.12 / ARMv7
+- Hoymiles HMS-800W-2T
+- Victron D-Bus service `com.victronenergy.pvinverter.hoymiles_hms800w2t`
+- DeviceInstance `40`
+- Position `1` = AC Output
+- driver version `1.1.1`
 
 The inverter is polled directly over the integrated Hoymiles WiFi DTU. No NAS and no MQTT bridge are required.
 
 ## Validated telemetry
 
-The local HMS response was validated on 2026-09-09. The driver now uses:
+The local HMS response was validated against real device data. The driver uses:
 
 - `dtu_power / 10` → AC power in W
 - `sgs_data.voltage / 10` → AC voltage in V
@@ -17,6 +27,8 @@ The local HMS response was validated on 2026-09-09. The driver now uses:
 - energy counters are Wh and are divided by 1000 for kWh
 
 A real sample was internally consistent: 234.0 V, 49.99 Hz, 0.53 A, PF 0.999 and 116.4 W AC. PV daily energy from both inputs summed exactly to the DTU daily energy counter.
+
+Runtime validation also showed stable polling every 35 seconds with live values such as 175.6 W / 238.1 V / 0.76 A and 330.1 W / 239.1 V / 1.39 A.
 
 Hoymiles `warning_number` is exposed only as a diagnostic value. It is not mapped to Victron `/ErrorCode` until the warning-code semantics are verified.
 
@@ -70,6 +82,23 @@ The Cerbo's existing `cryptography` package is used.
 
 `hoymiles-wifi 0.5.6` contains protobuf-generated modules built with protobuf 6.31.1, therefore the bundled runtime is pinned to 6.31.1 as well.
 
+## Service management on Venus OS
+
+Venus OS uses daemontools-style supervision. Useful commands:
+
+```sh
+svstat /service/hoymiles-pvinverter
+svc -t /service/hoymiles-pvinverter
+```
+
+`svc -t` terminates the current process and `supervise` starts it again automatically.
+
+Logging uses `multilog` and writes to:
+
+```text
+/var/log/hoymiles-pvinverter/current
+```
+
 ## Test
 
 Stop any old NAS bridge first to avoid double PV reporting and parallel local polling. Then:
@@ -103,6 +132,12 @@ Expected service:
 com.victronenergy.pvinverter.hoymiles_hms800w2t
 ```
 
+Process version check:
+
+```sh
+dbus -y com.victronenergy.pvinverter.hoymiles_hms800w2t /Mgmt/ProcessVersion GetValue
+```
+
 Published telemetry includes AC power, voltage, current, frequency, power factor, forward energy, daily energy, temperature, warning number and link status.
 
 ## Configuration
@@ -116,3 +151,4 @@ Edit `config.ini` before installation if the HMS IP differs.
 - `/data` survives normal Venus OS updates.
 - Polling is intentionally kept at 35 seconds.
 - Power limiting/control is **not** implemented. This driver is telemetry-only.
+- If another service (for example an older MQTT-PV bridge) reports the same inverter, disable that duplicate source to avoid double-counting PV power.
